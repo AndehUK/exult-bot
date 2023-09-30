@@ -41,6 +41,7 @@ class ExultBot(commands.Bot):
 
         self.owner_ids = {
             957437570546012240,  # ExHiraku
+            268815279570681857,  # lukewain
         }
 
     async def setup_hook(self) -> None:
