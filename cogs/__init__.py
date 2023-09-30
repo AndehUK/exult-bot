@@ -1,3 +1,3 @@
 from typing import Tuple
 
-COGS: Tuple[str, ...] = ()
+COGS: Tuple[str, ...] = ("cogs.miscellaneous",)
