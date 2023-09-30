@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import Tuple
+from typing import Optional, Tuple
 
 import aiohttp
 import discord
@@ -10,6 +10,7 @@ from prisma import Prisma
 
 from cogs import COGS
 from helpers.logger import Logger
+from helpers.regex import RegEx
 from helpers.tree import Tree
 
 
@@ -18,6 +19,7 @@ class ExultBot(commands.Bot):
     db: Prisma
     guilds_to_sync: Tuple[int, ...]
     logger: Logger
+    regex: RegEx
     session: aiohttp.ClientSession
     sync_on_ready: bool
 
@@ -27,6 +29,7 @@ class ExultBot(commands.Bot):
         self._is_ready = False
         self.guilds_to_sync = guilds_to_sync
         self.logger = Logger("ExultBot", console=True)
+        self.regex = RegEx()
         self.sync_on_ready = sync_on_ready
 
         super().__init__(
@@ -92,3 +95,10 @@ class ExultBot(commands.Bot):
                 await super().start(token, reconnect=reconnect)
             finally:
                 self.logger.info("Shutdown Bot.")
+
+    def get_partial_emoji_with_state(
+        self, name: str, animated: bool = False, id: Optional[int] = None
+    ) -> discord.PartialEmoji:
+        return discord.PartialEmoji.with_state(
+            self._connection, name=name, animated=animated, id=id
+        )
