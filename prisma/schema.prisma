@@ -23,6 +23,9 @@ model Guild {
     guild_id BigInt    @id
     expires  DateTime?
     premium  Boolean   @default(false)
+    
+    logging  Boolean   @default(false)
+    log_id   BigInt?
 
     members Member[]
 }
