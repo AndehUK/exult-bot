@@ -38,3 +38,24 @@ class View(ui.View):
         for child in self.children:
             if isinstance(child, (Button, Select)):
                 child.disabled = True
+
+    async def interaction_check(self, itr: Interaction) -> bool:
+        if self.personal and self.ctx:
+            if itr.user.id != self.ctx.user.id:
+                await itr.response.send_message(
+                    f"Sorry! This menu belongs to {self.ctx.user.mention}!",
+                    ephemeral=True,
+                )
+                return False
+        return True 
+
+    async def on_timeout(self) -> None:
+        try:
+            if not self.edited:
+                self.disable_view()
+                if self.message:
+                    await self.message.edit(
+                        content="Message components timed out.", view=self
+                    )
+        except:
+            pass
