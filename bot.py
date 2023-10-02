@@ -9,6 +9,7 @@ from discord.ext import commands
 from prisma import Prisma
 
 from cogs import COGS
+from helpers.ipc.routes import ExultBotIPC
 from helpers.logger import Logger
 from helpers.regex import RegEx
 from helpers.tree import Tree
@@ -18,6 +19,7 @@ class ExultBot(commands.Bot):
     _is_ready: bool
     db: Prisma
     guilds_to_sync: Tuple[int, ...]
+    ipc: ExultBotIPC
     logger: Logger
     regex: RegEx
     session: aiohttp.ClientSession
@@ -91,7 +93,9 @@ class ExultBot(commands.Bot):
 
     async def start(self, token: str, *, reconnect: bool = True) -> None:
         self.logger.info("Starting Bot...")
-        async with aiohttp.ClientSession() as self.session, Prisma() as self.db:
+        async with aiohttp.ClientSession() as self.session, Prisma() as self.db, ExultBotIPC(
+            self
+        ) as self.ipc:
             try:
                 await super().start(token, reconnect=reconnect)
             finally:
@@ -103,3 +107,9 @@ class ExultBot(commands.Bot):
         return discord.PartialEmoji.with_state(
             self._connection, name=name, animated=animated, id=id
         )
+
+    async def get_or_fetch_user(self, user_id: int) -> Optional[discord.User]:
+        try:
+            return self.get_user(user_id) or await self.fetch_user(user_id)
+        except discord.HTTPException:
+            return None
