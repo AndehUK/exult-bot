@@ -21,12 +21,12 @@ class View(ui.View):
 
     def __init__(
         self,
-        ctx: Optional[Interaction[ExultBot]] = None,
+        itr: Optional[Interaction[ExultBot]] = None,
         *,
         timeout: Optional[float] = 600.0,
         personal: bool = False,
     ) -> None:
-        self.ctx = ctx
+        self.itr = itr
         self.edited = False
         self.personal = personal
 
@@ -40,10 +40,10 @@ class View(ui.View):
                 child.disabled = True
 
     async def interaction_check(self, itr: Interaction) -> bool:
-        if self.personal and self.ctx:
-            if itr.user.id != self.ctx.user.id:
+        if self.personal and self.itr:
+            if itr.user.id != self.itr.user.id:
                 await itr.response.send_message(
-                    f"Sorry! This menu belongs to {self.ctx.user.mention}!",
+                    f"Sorry! This menu belongs to {self.itr.user.mention}!",
                     ephemeral=True,
                 )
                 return False
