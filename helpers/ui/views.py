@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from .select import Select
 
 
+__all__ = ("View", "V")
+
 V = TypeVar("V", bound="View", covariant=True)
 
 
@@ -47,7 +49,7 @@ class View(ui.View):
                     ephemeral=True,
                 )
                 return False
-        return True 
+        return True
 
     async def on_timeout(self) -> None:
         try:
