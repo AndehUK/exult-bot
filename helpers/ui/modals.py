@@ -6,6 +6,8 @@ from discord import ui
 
 from .views import V, View
 
+__all__ = ("Modal", "TextInput")
+
 
 class TextInput(ui.TextInput[V], Generic[V]):
     def __init__(
