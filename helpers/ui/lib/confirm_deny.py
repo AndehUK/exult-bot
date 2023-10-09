@@ -24,17 +24,18 @@ class ConfirmDeny(View):
         timeout: Optional[float] = 600.0,
         personal: bool = False,
         return_value: bool = True,
+        row: int = 0,
     ) -> None:
         self.return_value = return_value
         super().__init__(itr, timeout=timeout, personal=personal)
 
         confirm: Button[ConfirmDeny] = Button(
-            style=discord.ButtonStyle.green, label="Confirm", emoji="✅"
+            style=discord.ButtonStyle.green, label="Confirm", emoji="✅", row=row
         )
         confirm.callback = self.on_confirm
 
         deny: Button[ConfirmDeny] = Button(
-            style=discord.ButtonStyle.red, label="Deny", emoji="✖️"
+            style=discord.ButtonStyle.red, label="Deny", emoji="✖️", row=row
         )
         deny.callback = self.on_deny
 
