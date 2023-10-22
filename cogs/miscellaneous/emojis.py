@@ -1,22 +1,27 @@
 from __future__ import annotations
 
+# Core Imports
 from typing import Optional, TYPE_CHECKING
 
+# Third Party Packages
 import discord
 from discord import app_commands
 
+# Local Imports
 from helpers.checks import is_image_valid
 from helpers.cog import Cog
 from helpers.colour import Colours
 from helpers.embed import Embed
 from helpers.transformers import GuildEmojiTransformer
 
-
+# Type Imports
 if TYPE_CHECKING:
     from bot import ExultBot
 
 
 class Emojis(Cog):
+    """Contains commands regarding emoji creation and deletion"""
+
     emoji = app_commands.Group(
         name="emoji",
         description="Emoji Handler",

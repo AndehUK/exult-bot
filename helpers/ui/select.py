@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+# Core Imports
 from uuid import uuid4
 from typing import Generic, List, Optional
 
+# Third Party Packages
 import discord
 from discord import ui
 
+# Local Imports
 from .views import V
 
 __all__ = ("Select", "ChannelSelect", "UserSelect", "RoleSelect", "MentionableSelect")
 
 
 class Select(ui.Select[V], Generic[V]):
+    """
+    Represents a UI select menu with a list of custom options.
+    This is represented to the user as a dropdown menu.
+    """
+
     view: V
 
     def __init__(
@@ -39,6 +47,11 @@ class Select(ui.Select[V], Generic[V]):
 
 
 class ChannelSelect(ui.ChannelSelect[V], Generic[V]):
+    """
+    Represents a UI select menu with a list of predefined options with
+    the current channels in the guild.
+    """
+
     view: V
 
     def __init__(
@@ -66,6 +79,11 @@ class ChannelSelect(ui.ChannelSelect[V], Generic[V]):
 
 
 class UserSelect(ui.UserSelect[V], Generic[V]):
+    """
+    Represents a UI select menu with a list of predefined options with
+    the current members in the guild.
+    """
+
     view: V
 
     def __init__(
@@ -91,6 +109,11 @@ class UserSelect(ui.UserSelect[V], Generic[V]):
 
 
 class RoleSelect(ui.RoleSelect[V], Generic[V]):
+    """
+    Represents a UI select menu with a list of predefined options with
+    the current roles in the guild.
+    """
+
     view: V
 
     def __init__(
@@ -116,6 +139,11 @@ class RoleSelect(ui.RoleSelect[V], Generic[V]):
 
 
 class MentionableSelect(ui.MentionableSelect[V], Generic[V]):
+    """
+    Represents a UI select menu with a list of predefined options with
+    the current members and roles in the guild.
+    """
+
     view: V
 
     def __init__(

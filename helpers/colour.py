@@ -1,4 +1,6 @@
 class Colours:
+    """Commonly used colour values"""
+
     blue: int = 0x668EFF
     red: int = 0xFB5F5F
     green: int = 0x9AF708

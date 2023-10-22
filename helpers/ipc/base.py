@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# Core Imports
 import inspect
 import platform
 from enum import Enum
@@ -16,10 +17,13 @@ from typing import (
     TYPE_CHECKING,
 )
 
+# Third Party Packages
 from aiohttp import web
 
+# Local Imports
 from helpers.logger import Logger
 
+# Type Imports
 if TYPE_CHECKING:
     from bot import ExultBot
 
@@ -42,6 +46,8 @@ class Methods(Enum):
 
 
 def route(name: str, *, method: Methods) -> Callable[[FuncT], FuncT]:
+    """Decorator that allows us to easily create an API endpoint / route"""
+
     def decorator(func: FuncT) -> FuncT:
         actual = func
         if isinstance(actual, staticmethod):
@@ -57,6 +63,11 @@ def route(name: str, *, method: Methods) -> Callable[[FuncT], FuncT]:
 
 
 class IPCBase:
+    """
+    Base IPC class that handles the initialisation and setup process of our API routes
+    and HTTP server
+    """
+
     _runner: web.AppRunner
     _webserver: Optional[web.TCPSite]
     app: web.Application
@@ -72,6 +83,7 @@ class IPCBase:
         self._runner = web.AppRunner(self.app)
         self._webserver = None
 
+        # Collect all of our configured API routes and appends them to our web app
         for attr in map(lambda x: getattr(self, x, None), dir(self)):
             if attr is None:
                 continue
@@ -94,6 +106,8 @@ class IPCBase:
         await self.close()
 
     async def start(self, *, port: int = 3000) -> None:
+        """Starts our web app runner and webserver"""
+
         self.logger.debug("Starting IPC runner.")
         await self._runner.setup()
         self.logger.debug("Starting IPC webserver.")
@@ -102,6 +116,8 @@ class IPCBase:
         await self._webserver.start()
 
     async def close(self) -> None:
+        """Closes our webserver and conducts a cleanup of our web app runner"""
+
         self.logger.debug("Clearing up after IPCBase.")
         if self._webserver:
             try:

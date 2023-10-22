@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+# Core Imports
 import datetime
 from typing import List, Optional, TypedDict
 
+# Third Party Packages
 import discord
 
+# Local Imports
 from helpers.colour import Colours
 
 
@@ -25,6 +28,8 @@ class EmbedField(TypedDict):
 
 
 class Embed(discord.Embed):
+    """Subclass of :class:`discord.Embed` that provides some additional functionality"""
+
     def __init__(
         self,
         *,
@@ -70,10 +75,13 @@ class Embed(discord.Embed):
             )
 
     def add_named_field(self, name: str, *, inline: bool = True) -> None:
+        """Creates a new :class:`Embed` field with the provided name and an invisible value"""
         self.add_field(name=name, value="\u200b", inline=inline)
 
     def add_invisible_field(self, *, inline: bool = True) -> None:
+        """Creates a new invisible :class:`Embed` field"""
         self.add_field(name="\u200b", value="\u200b", inline=inline)
 
     def to_discord_embed(self) -> discord.Embed:
+        """Converts our custom :class:`Embed` instance to an actual :class:`discord.Embed`"""
         return discord.Embed.from_dict(self.to_dict())

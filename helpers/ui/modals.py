@@ -1,15 +1,20 @@
+# Core Imports
 from uuid import uuid4
 from typing import Generic, List, Optional
 
+# Third Party Packages
 import discord
 from discord import ui
 
+# Local Imports
 from .views import V, View
 
 __all__ = ("Modal", "TextInput")
 
 
 class TextInput(ui.TextInput[V], Generic[V]):
+    """Represents a UI text input."""
+
     def __init__(
         self,
         *,
@@ -41,6 +46,8 @@ class TextInput(ui.TextInput[V], Generic[V]):
 
 
 class Modal(ui.Modal):
+    """Represents a UI modal."""
+
     def __init__(
         self,
         *,

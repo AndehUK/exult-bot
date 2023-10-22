@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+# Core Imports
 from uuid import uuid4
 from typing import Any, Generic, Literal, Optional, TypeVar, TYPE_CHECKING, Union
 
+# Third Party Packages
 import discord
 from discord import ui
 
+# Local Imports
 from .views import View
 
+# Type Imports
 if TYPE_CHECKING:
     from bot import ExultBot
 
@@ -18,6 +22,8 @@ V = TypeVar("V", bound="View", covariant=True)
 
 
 class Button(ui.Button[V], Generic[V]):
+    """Represents a UI button."""
+
     view: V
 
     def __init__(
@@ -44,6 +50,8 @@ class Button(ui.Button[V], Generic[V]):
 
 
 class URLButton(ui.Button[V], Generic[V]):
+    """Builds on :class:`discord.ui.Button` to easily generate a URL Button"""
+
     view: V
 
     def __init__(self, label: str, url: str, row: Optional[int] = None) -> None:
@@ -51,6 +59,11 @@ class URLButton(ui.Button[V], Generic[V]):
 
 
 class GoToButton(Button[V], Generic[V]):
+    """
+    Builds on :class:`helpers.ui.Button` to easily generate a button that
+    navigates the user to another :class:`helpers.ui.View`.
+    """
+
     view: V
     edit_type: Literal["interaction", "message"]
 
@@ -93,6 +106,11 @@ class GoToButton(Button[V], Generic[V]):
 
 
 class DeleteMessage(Button[V], Generic[V]):
+    """
+    Builds on :class:`helpers.ui.Button` to easily generate a button that
+    deletes the message the button is attached to.
+    """
+
     view: V
 
     async def callback(self, itr: discord.Interaction[ExultBot]) -> None:
