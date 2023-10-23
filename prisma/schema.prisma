@@ -15,6 +15,8 @@ model Usage {
     invoker_id   BigInt
     uses         Int
 
+    created_at DateTime @default(now())
+
     @@id([command_name, invoker_id])
 }
 
@@ -23,15 +25,23 @@ model Guild {
     guild_id BigInt    @id
     expires  DateTime?
     premium  Boolean   @default(false)
-    
+
     logging_config LoggingConfig[]
 
     members Member[]
 }
 
+enum UsageMode {
+    share_user_id
+    hide_user_id
+    do_not_track
+}
+
 // Users the bot shares servers with (Global Data)
 model User {
     user_id BigInt @id
+
+    usage_mode UsageMode @default(share_user_id)
 
     member_data Member[]
 }
@@ -74,9 +84,9 @@ enum LogEvent {
 }
 
 model LoggingConfig {
-    guild_id BigInt
+    guild_id   BigInt
     event_type LogEvent
-    status Boolean @default(false)
+    status     Boolean  @default(false)
     channel_id BigInt?
 
     guild Guild @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)

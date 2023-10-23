@@ -29,6 +29,7 @@ class ExultBot(commands.Bot):
     regex: RegEx
     session: aiohttp.ClientSession
     sync_on_ready: bool
+    user: discord.ClientUser
 
     def __init__(
         self, *, sync_on_ready: bool = False, guilds_to_sync: Tuple[int, ...] = ()
