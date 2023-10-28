@@ -26,9 +26,10 @@ model Guild {
     expires  DateTime?
     premium  Boolean   @default(false)
 
-    logging_config LoggingConfig[]
+    logging_configs LoggingConfig[]
 
-    members Member[]
+    members  Member[]
+    messages Message[]
 }
 
 enum UsageMode {
@@ -92,4 +93,68 @@ model LoggingConfig {
     guild Guild @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)
 
     @@id([guild_id, event_type])
+}
+
+model Message {
+    guild_id BigInt
+    user_id  BigInt
+    name     String
+
+    content String
+    embeds  Embed[]
+
+    guild Guild @relation(references: [guild_id], fields: [guild_id], onDelete: Cascade)
+
+    @@id([guild_id, name])
+}
+
+model EmbedAuthor {
+    embed_id String @id
+
+    name String
+    icon String?
+    url  String?
+
+    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+}
+
+model EmbedFooter {
+    embed_id String @id
+
+    icon String?
+    text String
+
+    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+}
+
+model EmbedField {
+    embed_id String @id
+
+    name   String
+    value  String
+    inline Boolean @default(true)
+
+    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+}
+
+model Embed {
+    id       String @unique @default(cuid())
+    guild_id BigInt
+    name     String
+
+    title       String?
+    description String?
+    colour      Int?
+    timestamp   DateTime?
+    author      EmbedAuthor?
+    footer      EmbedFooter?
+    thumbnail   String?
+    image       String?
+    fields      EmbedField[]
+    url         String?
+
+    message Message @relation(references: [guild_id, name], fields: [guild_id, name], onDelete: Cascade)
+
+    @@id([guild_id, name])
+    @@index([guild_id, name])
 }
