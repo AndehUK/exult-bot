@@ -29,10 +29,10 @@
         - Check send and read permissions for channel, if good then send and update main embed saying "Complete"
     - Disable options if reached max for their tier
   - Disable save and send button if guild and user are at max
-- Send Without Saving
+- Send Without Saving ✅
   - Prompt the user to select which channel they want to send the message to
     - Check send and read permissions for channel, if good then send and update main embed saying "Complete"
-- Cancel
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ## Embed Main Menu
@@ -46,12 +46,13 @@
 
 ## Embed Builder
 
-- [Author](#embed-author)
-- Title
+- Author ✅
+  - Modal, 3 inputs for name, icon and url
+- Title ✅
   - Modal, Max length 256
-- Description
+- Description ✅
   - Modal, Max length 2048
-- Colour
+- Colour ✅
   - Modal, check value provided is valid colour value
 - [Fields](#embed-fields)
 - [Footer](#embed-footer)
@@ -60,18 +61,8 @@
 - Image
   - Modal, check for valid image url
 - [Finish](#embed-main-menu)
-- [Go Back](#embed-main-menu)
-- Cancel
-  - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
-
-### Embed Author
-
-- Author Name
-  - Modal, Max length 256
-- Author Icon
-  - Modal, check for valid image url
-- [Go Back](#embed-builder)
-- Cancel
+- [Go Back](#embed-main-menu) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ### Embed Fields

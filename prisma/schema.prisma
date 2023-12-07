@@ -1,6 +1,7 @@
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+    provider     = "mysql"
+    url          = env("DATABASE_URL")
+    relationMode = "prisma"
 }
 
 generator db {
@@ -56,6 +57,8 @@ model Member {
     guild Guild @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)
 
     @@id([member_id, guild_id])
+    @@index([guild_id])
+    @@index([member_id])
 }
 
 // Log Events
@@ -93,6 +96,7 @@ model LoggingConfig {
     guild Guild @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)
 
     @@id([guild_id, event_type])
+    @@index([guild_id])
 }
 
 model Message {
@@ -106,6 +110,9 @@ model Message {
     guild Guild @relation(references: [guild_id], fields: [guild_id], onDelete: Cascade)
 
     @@id([guild_id, name])
+    @@index([guild_id])
+    @@index([user_id])
+    @@index([name])
 }
 
 model EmbedAuthor {
@@ -116,6 +123,8 @@ model EmbedAuthor {
     url  String?
 
     embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+
+    @@index([embed_id])
 }
 
 model EmbedFooter {
@@ -125,6 +134,8 @@ model EmbedFooter {
     text String
 
     embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+
+    @@index([embed_id])
 }
 
 model EmbedField {
@@ -135,6 +146,8 @@ model EmbedField {
     inline Boolean @default(true)
 
     embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+
+    @@index([embed_id])
 }
 
 model Embed {

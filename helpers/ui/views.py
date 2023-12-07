@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 # Core Imports
-from typing import List, Optional, TypeVar, TYPE_CHECKING, Union
+from typing import (
+    List,
+    Optional,
+    Protocol,
+    runtime_checkable,
+    TypeVar,
+    TYPE_CHECKING,
+    Union,
+)
 
 # Third Party Packages
 from discord import Interaction, Message, ui
@@ -17,6 +25,11 @@ if TYPE_CHECKING:
 __all__ = ("View", "V")
 
 V = TypeVar("V", bound="View", covariant=True)
+
+
+@runtime_checkable
+class Disableable(Protocol):
+    disabled: bool
 
 
 class View(ui.View):
@@ -47,7 +60,7 @@ class View(ui.View):
         """
 
         for child in self.children:
-            if isinstance(child, (Button, Select)):
+            if isinstance(child, Disableable):
                 child.disabled = True
 
     async def interaction_check(self, itr: Interaction) -> bool:

@@ -3,7 +3,7 @@ from discord import TextChannel
 from helpers.colour import Colours
 from helpers.embed import Embed
 
-__all__ = ("MessageManagerEmbed", "MessageBuilderEmbed")
+__all__ = ("MessageManagerEmbed", "MessageBuilderEmbed", "SuccessEmbed")
 
 
 MessageManagerEmbed = Embed(
@@ -87,5 +87,13 @@ MessageBuilderEmbed = Embed(
     ],
 )
 
+
 class SuccessEmbed(Embed):
-    def __init__(self, channel: TextChannel)
+    def __init__(self, channel: TextChannel) -> None:
+        self.channel = channel
+
+        super().__init__(
+            title="Success!",
+            colour=Colours.green,
+            description=f"Your message has been sent to {channel.mention}!",
+        )

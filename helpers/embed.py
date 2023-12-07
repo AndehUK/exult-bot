@@ -52,7 +52,7 @@ class Embed(discord.Embed):
         *,
         title: Optional[str] = None,
         description: Optional[str] = None,
-        colour: Optional[Union[discord.Colour, int]] = Colours.embed_default,
+        colour: Optional[Union[discord.Colour, int]] = None,
         timestamp: Optional[datetime.datetime] = None,
         author: Optional[EmbedAuthor] = None,
         footer: Optional[EmbedFooter] = None,
@@ -91,13 +91,28 @@ class Embed(discord.Embed):
                 inline=field.get("inline", True),
             )
 
+    def is_minimal_ready(self) -> bool:
+        return any(
+            (
+                self.title,
+                self.description,
+                self.fields,
+                self.timestamp,
+                self.author,
+                self.thumbnail,
+                self.footer,
+                self.image,
+            )
+        )
+
     def add_named_field(self, name: str, *, inline: bool = True) -> None:
         """Creates a new :class:`Embed` field with the provided name and an invisible value"""
         self.add_field(name=name, value="\u200b", inline=inline)
 
-    def add_invisible_field(self, *, inline: bool = True) -> None:
+    def add_invisible_field(self, *, inline: bool = True) -> Embed:
         """Creates a new invisible :class:`Embed` field"""
         self.add_field(name="\u200b", value="\u200b", inline=inline)
+        return self
 
     def to_discord_embed(self) -> discord.Embed:
         """Converts our custom :class:`Embed` instance to an actual :class:`discord.Embed`"""
