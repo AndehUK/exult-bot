@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 # Core Imports
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+
+# Third Party Packages
+import discord
 
 # Type Imports
 if TYPE_CHECKING:
     from bot import ExultBot
+    from .types import ExultInteraction
 
 
 # Image types that we accept that our `is_image_valid` coroutine checks against
@@ -31,3 +35,37 @@ async def is_image_valid(bot: ExultBot, url: str) -> bool:
     except:
         pass
     return False
+
+
+async def check_role_permissions(
+    guild: discord.Guild,
+    role: discord.Role,
+    *,
+    itr: Optional[ExultInteraction] = None,
+    target: Optional[discord.Member] = None,
+) -> bool:
+    if itr:
+        assert isinstance(itr.user, discord.Member)
+
+    if not guild.me.guild_permissions.manage_roles:
+        if itr is not None:
+            await itr.response.send_message(
+                "I don't have the required permissions to manage roles!",
+                ephemeral=True,
+            )
+        return False
+    if role > guild.me.top_role:
+        if itr is not None:
+            await itr.response.send_message(
+                "I cannot manage roles higher than my own!", ephemeral=True
+            )
+        return False
+    if target:
+        if role > target.top_role:
+            if itr is not None:
+                await itr.response.send_message(
+                    "You cannot manage roles higher than your own!", ephemeral=True
+                )
+            return False
+
+    return True
