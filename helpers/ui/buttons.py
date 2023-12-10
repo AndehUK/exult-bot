@@ -32,7 +32,16 @@ if TYPE_CHECKING:
     from bot import ExultBot
     from helpers.embed import Embed
 
-__all__ = ("Button", "GoToButton", "URLButton", "DeleteMessage", "ModalButton")
+__all__ = (
+    "Button",
+    "GoToButton",
+    "URLButton",
+    "DeleteMessage",
+    "ModalButton",
+    "CANCEL_BUTTON",
+    "CANCEL_BUTTON_1",
+    "CANCEL_BUTTON_2",
+)
 
 
 V = TypeVar("V", bound="View", covariant=True)
@@ -243,3 +252,15 @@ class ModalButton(ui.Button[V], Generic[V]):
             return await itr.response.send_modal(self.modal())
         except:
             traceback.print_exc()
+
+
+# Pre-defining these buttons so we don't have an excessive amount of instances of ui.DeleteMessage
+CANCEL_BUTTON: ui.Button[ui.View] = DeleteMessage(
+    style=discord.ButtonStyle.red, label="Cancel"
+)
+CANCEL_BUTTON_1: ui.Button[ui.View] = DeleteMessage(
+    style=discord.ButtonStyle.red, label="Cancel", row=1
+)
+CANCEL_BUTTON_2: ui.Button[ui.View] = DeleteMessage(
+    style=discord.ButtonStyle.red, label="Cancel", row=2
+)

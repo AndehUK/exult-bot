@@ -27,6 +27,7 @@ model Guild {
     expires  DateTime?
     premium  Boolean   @default(false)
 
+    autorole_config AutoroleConfig?
     logging_configs LoggingConfig[]
 
     members  Member[]
@@ -59,6 +60,33 @@ model Member {
     @@id([member_id, guild_id])
     @@index([guild_id])
     @@index([member_id])
+}
+
+enum AutoroleMode {
+    on_join
+    on_verify
+}
+
+model AutoroleConfig {
+    guild_id BigInt @id
+
+    autorole_status Boolean      @default(false)
+    autorole_mode   AutoroleMode @default(on_join)
+    autoroles       Autorole[]
+
+    guild Guild @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)
+
+    @@index([guild_id])
+}
+
+model Autorole {
+    guild_id BigInt
+    role_id  BigInt
+
+    config AutoroleConfig @relation(fields: [guild_id], references: [guild_id], onDelete: Cascade)
+
+    @@id([guild_id, role_id])
+    @@index([guild_id, role_id])
 }
 
 // Log Events

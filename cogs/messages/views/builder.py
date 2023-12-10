@@ -37,17 +37,6 @@ __all__ = ("MessageManager",)
 EFB = TypeVar("EFB", bound="EmbedFieldBuilder")
 CURRENT_MESSAGES = 2
 
-# Pre-defining these buttons so we don't have an excessive amount of instances of ui.DeleteMessage
-CANCEL_BUTTON: ui.Button[ui.View] = ui.DeleteMessage(
-    style=discord.ButtonStyle.red, label="Cancel"
-)
-CANCEL_BUTTON_1: ui.Button[ui.View] = ui.DeleteMessage(
-    style=discord.ButtonStyle.red, label="Cancel", row=1
-)
-CANCEL_BUTTON_2: ui.Button[ui.View] = ui.DeleteMessage(
-    style=discord.ButtonStyle.red, label="Cancel", row=2
-)
-
 
 class ViewFactory:
     """
@@ -833,7 +822,7 @@ class EmbedFieldBuilder(ui.View):
                 view=EmbedBuilderView(ctx, data, embed_data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_1)
+        self.add_item(ui.CANCEL_BUTTON_1)
 
 
 class EmbedFieldSelector(ui.Select[ui.V]):
@@ -922,7 +911,7 @@ class EmbedFieldSelectorView(ui.View):
                 view=EmbedFields(ctx, data, embed_data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_1)
+        self.add_item(ui.CANCEL_BUTTON_1)
 
 
 class EmbedFields(ui.View):
@@ -982,7 +971,7 @@ class EmbedFields(ui.View):
                 view=EmbedBuilderView(ctx, data, embed_data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_2)
+        self.add_item(ui.CANCEL_BUTTON_2)
 
 
 class EmbedFooterModal(ui.Modal):
@@ -1320,7 +1309,7 @@ class EmbedBuilderView(ui.View):
                 view=MessageBuilderView(ctx, data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_2)
+        self.add_item(ui.CANCEL_BUTTON_2)
 
 
 class EmbedSelector(ui.Select[ui.V]):
@@ -1397,7 +1386,7 @@ class EmbedSelectorView(ui.View):
                 view=EmbedManagerView(ctx, data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_1)
+        self.add_item(ui.CANCEL_BUTTON_1)
 
 
 class EmbedManagerView(ui.View):
@@ -1449,7 +1438,7 @@ class EmbedManagerView(ui.View):
                 view=MessageBuilderView(ctx, data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON_1)
+        self.add_item(ui.CANCEL_BUTTON_1)
 
 
 class JSONEditorModal(ui.Modal):
@@ -1614,7 +1603,7 @@ class SendMessageView(ui.View):
                 view=MessageBuilderView(ctx, data, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON)
+        self.add_item(ui.CANCEL_BUTTON)
 
 
 class MessageNameModal(ui.Modal):
@@ -1859,7 +1848,7 @@ class MessageBuilderView(ui.View):
                     view=MessageManager(ctx, messages=messages),
                 )
             )
-            self.add_item(CANCEL_BUTTON_2)
+            self.add_item(ui.CANCEL_BUTTON_2)
         except Exception as e:
             print(f"Error building View {type(e)}: ", e)
 
@@ -1938,7 +1927,7 @@ class MessageSelectorView(ui.View):
                 view=MessageManager(ctx, messages=messages),
             )
         )
-        self.add_item(CANCEL_BUTTON)
+        self.add_item(ui.CANCEL_BUTTON)
 
 
 class MessageManager(ui.View):
@@ -1994,4 +1983,4 @@ class MessageManager(ui.View):
         self.add_item(
             ui.URLButton("Web Dashboard", "https://bot.exultsoftware.com", "🌐", row=1)
         )
-        self.add_item(CANCEL_BUTTON_1)
+        self.add_item(ui.CANCEL_BUTTON_1)
