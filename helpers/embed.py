@@ -47,6 +47,8 @@ class EmbedField(TypedDict):
 class Embed(discord.Embed):
     """Subclass of :class:`discord.Embed` that provides some additional functionality"""
 
+    _id: Optional[int] = None
+
     def __init__(
         self,
         *,
@@ -90,6 +92,14 @@ class Embed(discord.Embed):
                 value=field["value"],
                 inline=field.get("inline", True),
             )
+
+    @property
+    def id(self) -> Optional[int]:
+        return self._id
+
+    @id.setter
+    def id(self, value: int) -> None:
+        self._id = value
 
     def is_minimal_ready(self) -> bool:
         return any(
@@ -140,14 +150,21 @@ class Embed(discord.Embed):
 
         if data.author:
             self.set_author(
-                name=data.author.name, icon_url=data.author.icon, url=data.author.url
+                name=data.author.author_name,
+                icon_url=data.author.author_icon,
+                url=data.author.author_url,
             )
         if data.footer:
-            self.set_footer(text=data.footer.text, icon_url=data.footer.icon)
-
+            self.set_footer(
+                text=data.footer.footer_text, icon_url=data.footer.footer_icon
+            )
         if data.fields:
-            for field in data.fields:
-                self.add_field(name=field.name, value=field.value, inline=field.inline)
+            for field in sorted(data.fields, key=lambda x: x.field_index):
+                self.add_field(
+                    name=field.field_name,
+                    value=field.field_value,
+                    inline=field.field_inline,
+                )
 
         return self
 

@@ -10,4 +10,4 @@ class MessageBuilderData(typing.TypedDict):
     guild_id: int
     content: typing.Optional[str]
     embeds: typing.List[Embed]
-    edit: typing.Optional[int]
+    edit: typing.Optional[str]

@@ -15,7 +15,7 @@
 
 - Message Content ✅
   - Modal, Max length 2000 ✅
-- [Embeds](#embed-main-menu)
+- [Embeds](#embed-main-menu) ✅
 - Import JSON ✅
   - Modal, Max length 4000 ✅
 - Save and Exit
@@ -37,11 +37,11 @@
 
 ## Embed Main Menu
 
-- [Create Embed](#embed-builder)
-- [Edit Embed](#embed-selector-edit)
-- [Delete Embed(s)](#embed-selector-delete)
-- [Go Back](#message-create-main-menu)
-- Cancel
+- [Create Embed](#embed-builder) ✅
+- [Edit Embed](#embed-selector-edit) ✅
+- [Delete Embed(s)](#embed-selector-delete) ✅
+- [Go Back](#message-create-main-menu) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ## Embed Builder
@@ -54,60 +54,60 @@
   - Modal, Max length 2048
 - Colour ✅
   - Modal, check value provided is valid colour value
-- [Fields](#embed-fields)
-- [Footer](#embed-footer)
-- Thumbnail
+- [Fields](#embed-fields) ✅
+- [Footer](#embed-footer) ✅
+- Thumbnail ✅
   - Modal, check for valid image url
-- Image
+- Image ✅
   - Modal, check for valid image url
-- [Finish](#embed-main-menu)
+- [Finish](#embed-main-menu) ✅
 - [Go Back](#embed-main-menu) ✅
 - Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ### Embed Fields
 
-- [Add Field](#field-builder)
-- [Edit Field](#field-selector-edit)
-- [Delete Field(s)](#field-selector-delete)
-- [Go Back](#embed-builder)
-- Cancel
+- [Add Field](#field-builder) ✅
+- [Edit Field](#field-selector-edit) ✅
+- [Delete Field(s)](#field-selector-delete) ✅
+- [Go Back](#embed-builder) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 #### Field Builder
 
-- Field Name
+- Field Name ✅
   - Modal, Max length 256
-- Field Value
+- Field Value ✅
   - Modal, Max length 1024
-- Field Inline (Toggleable)
-- [Confirm](#embed-fields)
-- [Go Back](#embed-fields)
-- Cancel
+- Field Inline (Toggleable) ✅
+- [Confirm](#embed-fields) ✅
+- [Go Back](#embed-fields) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 #### Field Selector (Edit)
 
-- [Field SelectMenu](#field-builder)
-- [Go Back](#embed-fields)
-- Cancel
+- [Field SelectMenu](#field-builder) ✅
+- [Go Back](#embed-fields) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 #### Field Selector (Delete)
 
-- [Field SelectMenu](#embed-fields)
-- [Go Back](#embed-fields)
-- Cancel
+- [Field SelectMenu](#embed-fields) ✅
+- [Go Back](#embed-fields) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ### Embed Footer
 
-- Footer Text
+- Footer Text ✅
   - Modal, Max length 2048
-- Footer Icon
+- Footer Icon ✅
   - Modal, check for valid image url
-- [Go Back](#embed-builder)
-- Cancel
+- [Go Back](#embed-builder) ✅
+- Cancel ✅
   - Delete Message, give the user 5 minutes to restore from where they left off, then disable view
 
 ## Embed Selector (Edit)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # Core Imports
+import traceback
 from ast import literal_eval
 from typing import (
     Any,
@@ -13,9 +14,11 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from uuid import uuid4
 
 # Third Party Imports
 import discord
+from prisma.models import Message
 
 # Local Imports
 from helpers import ui
@@ -53,22 +56,44 @@ class ViewFactory:
     """
 
     @staticmethod
-    def create_manager_view(ctx: ExultInteraction) -> MessageManager:
-        return MessageManager(ctx)
+    def create_manager_view(
+        ctx: ExultInteraction, messages: List[Message]
+    ) -> MessageManager:
+        return MessageManager(ctx, messages=messages)
 
     @staticmethod
     def create_builder_view(
-        ctx: ExultInteraction, data: Optional[MessageBuilderData] = None
+        ctx: ExultInteraction,
+        messages: List[Message],
+        data: Optional[MessageBuilderData] = None,
     ) -> MessageBuilderView:
-        return MessageBuilderView(ctx, data)
+        return MessageBuilderView(ctx, data, messages=messages)
+
+    @staticmethod
+    def create_embed_manager_view(
+        ctx: ExultInteraction, data: MessageBuilderData, *, messages: List[Message]
+    ) -> EmbedManagerView:
+        return EmbedManagerView(ctx, data, messages=messages)
+
+    @staticmethod
+    def create_embed_selector_view(
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        *,
+        delete: bool = False,
+        messages: List[Message],
+    ) -> EmbedSelectorView:
+        return EmbedSelectorView(ctx, data, delete=delete, messages=messages)
 
     @staticmethod
     def create_embed_builder_view(
         ctx: ExultInteraction,
         data: MessageBuilderData,
         embed_data: Optional[Embed] = None,
+        *,
+        messages: List[Message],
     ) -> EmbedBuilderView:
-        return EmbedBuilderView(ctx, data, embed_data)
+        return EmbedBuilderView(ctx, data, embed_data, messages=messages)
 
     @staticmethod
     def create_embed_author_modal(
@@ -111,8 +136,10 @@ class ViewFactory:
         ctx: ExultInteraction,
         data: MessageBuilderData,
         embed_data: Embed,
+        *,
+        messages: List[Message],
     ) -> EmbedFields:
-        return EmbedFields(ctx, data, embed_data)
+        return EmbedFields(ctx, data, embed_data, messages=messages)
 
     @staticmethod
     def create_embed_field_prop_modal(
@@ -135,9 +162,16 @@ class ViewFactory:
         *,
         new: bool,
         pre_edit_state: Optional[EmbedField] = None,
+        messages: List[Message],
     ) -> EmbedFieldBuilder:
         return EmbedFieldBuilder(
-            ctx, data, embed_data, field_id, new=new, pre_edit_state=pre_edit_state
+            ctx,
+            data,
+            embed_data,
+            field_id,
+            new=new,
+            pre_edit_state=pre_edit_state,
+            messages=messages,
         )
 
     @staticmethod
@@ -147,24 +181,70 @@ class ViewFactory:
         embed_data: Embed,
         *,
         delete: bool = False,
+        messages: List[Message],
     ) -> EmbedFieldSelectorView:
-        return EmbedFieldSelectorView(ctx, data, embed_data, delete=delete)
+        return EmbedFieldSelectorView(
+            ctx, data, embed_data, delete=delete, messages=messages
+        )
 
     @staticmethod
-    def create_selector_view(ctx: ExultInteraction) -> MessageSelectorView:
-        return MessageSelectorView(ctx)
+    def create_embed_footer_modal(
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
+    ) -> EmbedFooterModal:
+        return EmbedFooterModal(ctx, data, embed_data, view)
+
+    @staticmethod
+    def create_embed_thumbnail_modal(
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
+    ) -> EmbedThumbnailModal:
+        return EmbedThumbnailModal(ctx, data, embed_data, view)
+
+    @staticmethod
+    def create_embed_image_modal(
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
+    ) -> EmbedImageModal:
+        return EmbedImageModal(ctx, data, embed_data, view)
+
+    @staticmethod
+    def create_message_name_modal(
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        view: ui.View,
+        *,
+        send_after: bool = False,
+    ) -> MessageNameModal:
+        return MessageNameModal(ctx, data, view, send_after=send_after)
+
+    @staticmethod
+    def create_selector_view(
+        ctx: ExultInteraction, *, messages: List[Message], delete: bool = False
+    ) -> MessageSelectorView:
+        return MessageSelectorView(ctx, messages=messages, delete=delete)
 
     @staticmethod
     def create_send_view(
-        ctx: ExultInteraction, data: MessageBuilderData
+        ctx: ExultInteraction, data: MessageBuilderData, *, messages: List[Message]
     ) -> SendMessageView:
-        return SendMessageView(ctx, data)
+        return SendMessageView(ctx, data, messages=messages)
 
     @staticmethod
     def create_content_modal(
-        ctx: ExultInteraction, data: MessageBuilderData, view: ui.View
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        view: ui.View,
+        *,
+        messages: List[Message],
     ) -> MessageContentModal:
-        return MessageContentModal(ctx, data, view)
+        return MessageContentModal(ctx, data, view, messages=messages)
 
     @staticmethod
     def create_json_modal(
@@ -180,11 +260,17 @@ class PlaceholderButton(ui.Button[ui.V]):
 
 class MessageContentModal(ui.Modal):
     def __init__(
-        self, ctx: ExultInteraction, data: MessageBuilderData, view: ui.View
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        view: ui.View,
+        *,
+        messages: List[Message],
     ) -> None:
         self.ctx = ctx
         self.data = data
         self.view = view
+        self.messages = messages
         super().__init__(title="Message Content")
 
         self.add_item(
@@ -198,12 +284,16 @@ class MessageContentModal(ui.Modal):
         )
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
         new_content = self.children[0].value
         if new_content == self.data["content"]:
             return await itr.followup.send("No changes were made.", ephemeral=True)
         self.data["content"] = new_content
-        view = MessageBuilderView(self.ctx, self.data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = MessageBuilderView(self.ctx, self.data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send("Message Content has been updated!", ephemeral=True)
@@ -224,10 +314,12 @@ class EmbedAuthorModal(ui.Modal):
 
         super().__init__(title="Embed Author")
 
+        print(ctx.user.name)
+
         self.add_item(
             ui.TextInput(
                 label="Author Name",
-                placeholder=ctx.user.name,
+                placeholder=ctx.user.name[:100],
                 default=embed_data.author.name,
                 max_length=256,
             )
@@ -236,7 +328,7 @@ class EmbedAuthorModal(ui.Modal):
         self.add_item(
             ui.TextInput(
                 label="Author Icon URL",
-                placeholder=ctx.user.display_avatar.url,
+                placeholder=ctx.user.display_avatar.url[:100],
                 default=embed_data.author.icon_url,
                 required=False,
             )
@@ -252,6 +344,7 @@ class EmbedAuthorModal(ui.Modal):
         )
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
         author_name = self.children[0].value
@@ -309,7 +402,10 @@ class EmbedAuthorModal(ui.Modal):
         self.embed_data.set_author(
             name=author_name, icon_url=author_icon, url=author_url
         )
-        view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send(embed=embed, ephemeral=True)
@@ -348,6 +444,7 @@ class EmbedTitleModal(ui.Modal):
         )
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
         title = self.children[0].value
@@ -382,7 +479,10 @@ class EmbedTitleModal(ui.Modal):
         )
         self.embed_data.title = title
         self.embed_data.url = title_url
-        view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send(embed=embed, ephemeral=True)
@@ -413,6 +513,7 @@ class EmbedDescriptionModal(ui.Modal):
         )
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
         description = self.children[0].value
@@ -430,7 +531,10 @@ class EmbedDescriptionModal(ui.Modal):
             colour=Colours.green,
         )
         self.embed_data.description = description
-        view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send(embed=embed, ephemeral=True)
@@ -462,9 +566,10 @@ class EmbedColourModal(ui.Modal):
         )
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
-        new_colour = str(self.children[0].value).lower()  # type: ignore
+        new_colour = str(self.children[0].value).lower()
 
         colour_changes: Optional[str] = None
 
@@ -497,7 +602,10 @@ class EmbedColourModal(ui.Modal):
             description=f"## Updated Embed Colour: \n{colour_changes}",
             colour=colour,
         )
-        view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send(embed=embed, ephemeral=True)
@@ -531,6 +639,7 @@ class EmbedFieldPropModal(ui.Modal):
         self.add_item(ui.TextInput(label=label, default=prop, max_length=max_length))
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
         if not self.field:
@@ -551,6 +660,9 @@ class EmbedFieldPropModal(ui.Modal):
             value=new_prop if self.edit == "value" else self.field.value,
             inline=self.field.inline,
         )
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
         view = EmbedFieldBuilder(
             self.ctx,
             self.data,
@@ -558,6 +670,7 @@ class EmbedFieldPropModal(ui.Modal):
             self.field_id,
             new=self.view.new,
             pre_edit_state=self.view.pre_edit_state,
+            messages=messages,
         )
         embed = Embed(
             description=f"## Updated Embed Field {self.edit.capitalize()}:\n {prop_changes}",
@@ -589,6 +702,7 @@ class EmbedFieldInlineToggle(ui.Button[EFB]):
         super().__init__(style=ui.STATUS_STYLE[self.inline], label=label)
 
     async def callback(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
         new_inline = not self.inline
 
@@ -600,6 +714,9 @@ class EmbedFieldInlineToggle(ui.Button[EFB]):
             value=self.field.value,
             inline=new_inline,
         )
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
         view = EmbedFieldBuilder(
             self.ctx,
             self.data,
@@ -607,6 +724,7 @@ class EmbedFieldInlineToggle(ui.Button[EFB]):
             self.field_id,
             new=self.view.new,
             pre_edit_state=self.view.pre_edit_state,
+            messages=messages,
         )
         new_status = "`✅` Inline" if new_inline else "`❌` Not Inline"
         embed = Embed(
@@ -640,10 +758,14 @@ class EmbedFieldConfirm(ui.Button[EFB]):
         )
 
     async def callback(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
         action = "created" if not self.view.new else "updated"
-        view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
         embed = Embed(
             description=f"## Embed Field {action}:\n Field {len(self.embed_data.fields)} has been {action}!",
             colour=Colours.green,
@@ -666,6 +788,7 @@ class EmbedFieldBuilder(ui.View):
         *,
         new: bool,
         pre_edit_state: Optional[EmbedField] = None,
+        messages: List[Message],
     ) -> None:
         self.new = new
         self.pre_edit_state = pre_edit_state
@@ -707,7 +830,7 @@ class EmbedFieldBuilder(ui.View):
                 row=1,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=EmbedBuilderView(ctx, data, embed_data),
+                view=EmbedBuilderView(ctx, data, embed_data, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON_1)
@@ -739,8 +862,12 @@ class EmbedFieldSelector(ui.Select[ui.V]):
         )
 
     async def callback(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
 
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
         if self.delete:
             total = 0
             for pos in sorted([int(v) for v in self.values], reverse=True):
@@ -754,13 +881,20 @@ class EmbedFieldSelector(ui.Select[ui.V]):
                 colour=Colours.green,
             )
             await itr.followup.send(embed=embed, ephemeral=True)
-            view = EmbedBuilderView(self.ctx, self.data, self.embed_data)
+            view = EmbedBuilderView(
+                self.ctx, self.data, self.embed_data, messages=messages
+            )
         else:
             pos = int(self.values[0])
             field = self.embed_data.fields[pos]
             assert field
             view = EmbedFieldBuilder(
-                self.ctx, self.data, self.embed_data, field_id=pos, new=False
+                self.ctx,
+                self.data,
+                self.embed_data,
+                field_id=pos,
+                new=False,
+                messages=messages,
             )
         await itr.edit_original_response(view=view)
 
@@ -773,6 +907,7 @@ class EmbedFieldSelectorView(ui.View):
         embed_data: Embed,
         *,
         delete: bool = False,
+        messages: List[Message],
     ) -> None:
         super().__init__(ctx, personal=True)
 
@@ -784,7 +919,7 @@ class EmbedFieldSelectorView(ui.View):
                 row=1,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=EmbedFields(ctx, data, embed_data),
+                view=EmbedFields(ctx, data, embed_data, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON_1)
@@ -796,6 +931,8 @@ class EmbedFields(ui.View):
         ctx: ExultInteraction,
         data: MessageBuilderData,
         embed_data: Embed,
+        *,
+        messages: List[Message],
     ) -> None:
         super().__init__(ctx, personal=True)
 
@@ -807,7 +944,7 @@ class EmbedFields(ui.View):
                 edit_type="message",
                 embed=MessageManagerEmbed,
                 view_factory=lambda: ViewFactory.create_embed_field_builder_view(
-                    ctx, data, embed_data, new=True
+                    ctx, data, embed_data, new=True, messages=messages
                 ),
             )
         )
@@ -819,7 +956,7 @@ class EmbedFields(ui.View):
                 edit_type="message",
                 embed=MessageManagerEmbed,
                 view_factory=lambda: ViewFactory.create_embed_field_selector_view(
-                    ctx, data, embed_data, delete=False
+                    ctx, data, embed_data, delete=False, messages=messages
                 ),
             )
         )
@@ -831,7 +968,7 @@ class EmbedFields(ui.View):
                 edit_type="message",
                 embed=MessageManagerEmbed,
                 view_factory=lambda: ViewFactory.create_embed_field_selector_view(
-                    ctx, data, embed_data, delete=True
+                    ctx, data, embed_data, delete=True, messages=messages
                 ),
             )
         )
@@ -842,19 +979,217 @@ class EmbedFields(ui.View):
                 row=2,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=EmbedBuilderView(ctx, data, embed_data),
+                view=EmbedBuilderView(ctx, data, embed_data, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON_2)
 
 
-class EmbedBuilderConfirm(ui.Button[ui.V]):
+class EmbedFooterModal(ui.Modal):
     def __init__(
-        self, ctx: ExultInteraction, data: MessageBuilderData, embed_data: Embed
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
     ) -> None:
         self.ctx = ctx
         self.data = data
         self.embed_data = embed_data
+        self.view = view
+
+        super().__init__(title="Embed Footer")
+
+        self.add_item(
+            ui.TextInput(
+                label="Footer Text",
+                placeholder="My Embed Footer",
+                default=embed_data.footer.text,
+                max_length=2048,
+            )
+        )
+
+        self.add_item(
+            ui.TextInput(
+                label="Footer Icon URL",
+                placeholder="https://bot.exultsoftware.com",
+                default=embed_data.footer.icon_url,
+                required=False,
+            )
+        )
+
+    async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
+        await itr.response.defer(ephemeral=True)
+
+        footer_text = self.children[0].value
+        footer_icon = None
+
+        text_changes: Optional[str] = None
+        icon_changes: Optional[str] = None
+
+        text_changes = (
+            "No changes were made to footer text."
+            if self.embed_data.footer.text == footer_text
+            else f"Footer text has been updated to `{footer_text}`."
+        )
+
+        if self.children[1].value == self.embed_data.footer.icon_url:
+            icon_changes = "No changes were made to footer icon."
+            footer_icon = self.children[1].value
+        else:
+            if self.children[1].value:
+                valid_url = itr.client.regex.url_regex.search(self.children[1].value)
+                if not valid_url:
+                    icon_changes = "Invalid URL provided for footer icon."
+                else:
+                    valid_image = await is_image_valid(
+                        itr.client, self.children[1].value
+                    )
+                    if not valid_image:
+                        icon_changes = "Invalid image provided for footer icon."
+                    else:
+                        icon_changes = "Footer icon has been updated."
+                        footer_icon = self.children[1].value
+            else:
+                icon_changes = "No footer icon was provided."
+
+            embed = Embed(
+                description=f"## Updated Embed Footer:\n{text_changes}\n{icon_changes}",
+                colour=Colours.green,
+            )
+
+            self.embed_data.set_footer(text=footer_text, icon_url=footer_icon)
+            messages = await itr.client.db.message.find_many(
+                where={"guild_id": itr.guild.id}
+            )
+            view = EmbedBuilderView(
+                self.ctx, self.data, self.embed_data, messages=messages
+            )
+            await itr.edit_original_response(view=view)
+            self.view.edited = True
+            await itr.followup.send(embed=embed, ephemeral=True)
+
+
+class EmbedThumbnailModal(ui.Modal):
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
+    ) -> None:
+        self.ctx = ctx
+        self.data = data
+        self.embed_data = embed_data
+        self.view = view
+
+        super().__init__(title="Embed Thumbnail")
+
+        self.add_item(
+            ui.TextInput(
+                label="Thumbnail URL",
+                placeholder="https://bot.exultsoftware.com",
+                default=embed_data.thumbnail.url,
+                required=False,
+            )
+        )
+
+    async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
+        await itr.response.defer(ephemeral=True)
+
+        thumbnail_url = self.children[0].value
+
+        url_changes: Optional[str] = None
+
+        url_changes = (
+            "No changes were made to thumbnail URL."
+            if self.embed_data.thumbnail.url == thumbnail_url
+            else f"Thumbnail URL has been updated to `{thumbnail_url}`."
+        )
+
+        embed = Embed(
+            description=f"## Updated Embed Thumbnail:\n{url_changes}",
+            colour=Colours.green,
+        )
+
+        self.embed_data.set_thumbnail(url=thumbnail_url)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
+        await itr.edit_original_response(view=view)
+        self.view.edited = True
+        await itr.followup.send(embed=embed, ephemeral=True)
+
+
+class EmbedImageModal(ui.Modal):
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        view: ui.View,
+    ) -> None:
+        self.ctx = ctx
+        self.data = data
+        self.embed_data = embed_data
+        self.view = view
+
+        super().__init__(title="Embed Image")
+
+        self.add_item(
+            ui.TextInput(
+                label="Image URL",
+                placeholder="https://bot.exultsoftware.com",
+                default=embed_data.image.url,
+                required=False,
+            )
+        )
+
+    async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
+        await itr.response.defer(ephemeral=True)
+
+        image_url = self.children[0].value
+
+        url_changes: Optional[str] = None
+
+        url_changes = (
+            "No changes were made to image URL."
+            if self.embed_data.image.url == image_url
+            else f"Image URL has been updated to `{image_url}`."
+        )
+
+        embed = Embed(
+            description=f"## Updated Embed Image:\n{url_changes}",
+            colour=Colours.green,
+        )
+
+        self.embed_data.set_image(url=image_url)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = EmbedBuilderView(self.ctx, self.data, self.embed_data, messages=messages)
+        await itr.edit_original_response(view=view)
+        self.view.edited = True
+        await itr.followup.send(embed=embed, ephemeral=True)
+
+
+class EmbedBuilderConfirm(ui.Button[ui.V]):
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        embed_data: Embed,
+        *,
+        messages: List[Message],
+    ) -> None:
+        self.ctx = ctx
+        self.data = data
+        self.embed_data = embed_data
+        self.messages = messages
         super().__init__(
             style=ui.COMPLETED_STYLE[embed_data.is_minimal_ready()],
             label="Confirm",
@@ -870,11 +1205,16 @@ class EmbedBuilderConfirm(ui.Button[ui.V]):
                 "`❌` You have reached the maximum amount of embeds allowed per message.",
                 ephemeral=True,
             )
-        self.data["embeds"].append(self.embed_data)
-        view = MessageBuilderView(self.ctx, self.data)
+        if self.embed_data.id is None:
+            self.data["embeds"].append(self.embed_data)
+            msg = "Embed has been added to your message!"
+        else:
+            self.data["embeds"][self.embed_data.id] = self.embed_data
+            msg = f"Embed {self.embed_data.id + 1} has been updated!"
+        view = MessageBuilderView(self.ctx, self.data, messages=self.messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
-        await itr.followup.send("Embed has been added to your message!", ephemeral=True)
+        await itr.followup.send(msg, ephemeral=True)
 
 
 class EmbedBuilderView(ui.View):
@@ -883,6 +1223,8 @@ class EmbedBuilderView(ui.View):
         ctx: ExultInteraction,
         data: MessageBuilderData,
         embed_data: Optional[Embed] = None,
+        *,
+        messages: List[Message],
     ) -> None:
         super().__init__(ctx, personal=True)
 
@@ -929,16 +1271,45 @@ class EmbedBuilderView(ui.View):
                 style=ui.COMPLETED_STYLE[bool(self.embed_data.fields)],
                 label="Fields",
                 disabled=len(self.embed_data.fields) >= 25,
-                emoji="📰",
+                row=1,
                 view_factory=lambda: ViewFactory.create_embed_fields_view(
-                    ctx, data, self.embed_data
+                    ctx, data, self.embed_data, messages=messages
                 ),
             )
         )
-        self.add_item  # Footer
-        self.add_item  # Thumbnail
-        self.add_item  # Image
-        self.add_item(EmbedBuilderConfirm(ctx, data, self.embed_data))
+        self.add_item(
+            ui.ModalButton(
+                lambda: ViewFactory.create_embed_footer_modal(
+                    ctx, data, self.embed_data, self
+                ),
+                row=1,
+                style=ui.COMPLETED_STYLE[bool(self.embed_data.footer.text)],
+                label="Embed Footer",
+            )
+        )
+        self.add_item(
+            ui.ModalButton(
+                lambda: ViewFactory.create_embed_thumbnail_modal(
+                    ctx, data, self.embed_data, self
+                ),
+                row=1,
+                style=ui.COMPLETED_STYLE[bool(self.embed_data.thumbnail.url)],
+                label="Embed Thumbnail",
+            )
+        )
+        self.add_item(
+            ui.ModalButton(
+                lambda: ViewFactory.create_embed_image_modal(
+                    ctx, data, self.embed_data, self
+                ),
+                row=1,
+                style=ui.COMPLETED_STYLE[bool(self.embed_data.image.url)],
+                label="Embed Image",
+            )
+        )
+        self.add_item(
+            EmbedBuilderConfirm(ctx, data, self.embed_data, messages=messages)
+        )
         self.add_item(
             ui.GoToButton(
                 style=discord.ButtonStyle.red,
@@ -946,10 +1317,139 @@ class EmbedBuilderView(ui.View):
                 row=2,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=MessageBuilderView(ctx, data),
+                view=MessageBuilderView(ctx, data, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON_2)
+
+
+class EmbedSelector(ui.Select[ui.V]):
+    def __init__(
+        self, ctx: ExultInteraction, data: MessageBuilderData, *, delete: bool = False
+    ) -> None:
+        self.ctx = ctx
+        self.data = data
+        self.delete = delete
+        options = [
+            discord.SelectOption(label=self.embed_title(e, pos), value=str(pos))
+            for pos, e in enumerate(data["embeds"])
+        ]
+
+        super().__init__(
+            placeholder="Select an Embed!",
+            max_values=len(data["embeds"]) if delete else 1,
+            options=options,
+        )
+
+    def embed_title(self, embed: Embed, pos: int) -> str:
+        title = embed.title or f"Embed {pos + 1}"
+        if len(title) > 100:
+            title = title[:95] + "..."
+        return title
+
+    async def callback(self, itr: ExultInteraction) -> None:
+        assert itr.guild
+        await itr.response.defer(ephemeral=True)
+
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        if self.delete:
+            total = 0
+            for pos in sorted([int(v) for v in self.values], reverse=True):
+                del self.data["embeds"][pos]
+                total += 1
+            description = f"Successfully deleted {total}/{len(self.values)} embeds."
+            embed = Embed(
+                description=f"## Embeds Deleted:\n{description}",
+                colour=Colours.green,
+            )
+            await itr.followup.send(embed=embed, ephemeral=True)
+            view = MessageBuilderView(self.ctx, self.data, messages=messages)
+        else:
+            pos = int(self.values[0])
+            embed = self.data["embeds"][pos]
+            assert embed
+            embed.id = pos
+            view = EmbedBuilderView(self.ctx, self.data, embed, messages=messages)
+        await itr.edit_original_response(view=view)
+
+
+class EmbedSelectorView(ui.View):
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        *,
+        delete: bool = False,
+        messages: List[Message],
+    ) -> None:
+        super().__init__(ctx, personal=True)
+
+        self.add_item(EmbedSelector(ctx, data, delete=delete))
+        self.add_item(
+            ui.GoToButton(
+                style=discord.ButtonStyle.red,
+                label="Go Back",
+                row=1,
+                edit_type="message",
+                embed=MessageManagerEmbed,
+                view=EmbedManagerView(ctx, data, messages=messages),
+            )
+        )
+        self.add_item(CANCEL_BUTTON_1)
+
+
+class EmbedManagerView(ui.View):
+    def __init__(
+        self, ctx: ExultInteraction, data: MessageBuilderData, messages: List[Message]
+    ) -> None:
+        super().__init__(ctx, personal=True)
+
+        self.add_item(
+            ui.GoToButton(
+                style=discord.ButtonStyle.green,
+                label="Create Embed",
+                edit_type="message",
+                embed=MessageManagerEmbed,
+                view_factory=lambda: ViewFactory.create_embed_builder_view(
+                    ctx, data, messages=messages
+                ),
+            )
+        )
+        self.add_item(
+            ui.GoToButton(
+                style=discord.ButtonStyle.blurple,
+                label="Edit Embed",
+                edit_type="message",
+                embed=MessageManagerEmbed,
+                view_factory=lambda: ViewFactory.create_embed_selector_view(
+                    ctx, data, delete=False, messages=messages
+                ),
+            )
+        )
+        self.add_item(
+            ui.GoToButton(
+                style=discord.ButtonStyle.red,
+                label="Delete Embed",
+                edit_type="message",
+                embed=MessageManagerEmbed,
+                view_factory=lambda: ViewFactory.create_embed_selector_view(
+                    ctx, data, delete=True, messages=messages
+                ),
+            )
+        )
+        self.add_item(
+            ui.GoToButton(
+                style=discord.ButtonStyle.red,
+                label="Go Back",
+                row=1,
+                edit_type="message",
+                embed=MessageManagerEmbed,
+                view=MessageBuilderView(ctx, data, messages=messages),
+            )
+        )
+        self.add_item(CANCEL_BUTTON_1)
 
 
 class JSONEditorModal(ui.Modal):
@@ -979,6 +1479,7 @@ class JSONEditorModal(ui.Modal):
             print(f"{type(e)}: {e}")
 
     async def on_submit(self, itr: ExultInteraction) -> None:
+        assert itr.guild
         await itr.response.defer(ephemeral=True)
         user_json_str = self.children[0].value
         user_json_str.replace("null", "None").replace("true", "True").replace(
@@ -1033,7 +1534,10 @@ class JSONEditorModal(ui.Modal):
                 embeds.append(embed)
         self.data["content"] = user_json.get("content", None)
         self.data["embeds"] = embeds
-        view = MessageBuilderView(self.ctx, self.data)
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = MessageBuilderView(self.ctx, self.data, messages=messages)
         await itr.edit_original_response(view=view)
         self.view.edited = True
         await itr.followup.send("Successfully updated message data!", ephemeral=True)
@@ -1094,7 +1598,9 @@ class SendMessageSelect(ui.ChannelSelect[ui.V]):
 
 
 class SendMessageView(ui.View):
-    def __init__(self, ctx: ExultInteraction, data: MessageBuilderData) -> None:
+    def __init__(
+        self, ctx: ExultInteraction, data: MessageBuilderData, messages: List[Message]
+    ) -> None:
         super().__init__(ctx, personal=True)
 
         self.add_item(SendMessageSelect(ctx, data))
@@ -1105,15 +1611,158 @@ class SendMessageView(ui.View):
                 row=1,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=MessageBuilderView(ctx, data),
+                view=MessageBuilderView(ctx, data, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON)
 
 
+class MessageNameModal(ui.Modal):
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        data: MessageBuilderData,
+        view: ui.View,
+        *,
+        send_after: bool = False,
+    ) -> None:
+        self.ctx = ctx
+        self.data = data
+        self.view = view
+        self.send_after = send_after
+        super().__init__(title="Message Name")
+
+        self.add_item(
+            ui.TextInput(
+                label="Message Name",
+                placeholder="My Message",
+                default=data["edit"],
+                max_length=100,
+            )
+        )
+
+    async def is_name_valid(self, itr: ExultInteraction, name: str) -> bool:
+        assert itr.guild
+        message_exists = await itr.client.db.message.find_unique(
+            where={"guild_id_name": {"guild_id": itr.guild.id, "name": name}}
+        )
+        return bool(message_exists)
+
+    async def is_id_valid(self, itr: ExultInteraction, embed_id: str) -> bool:
+        assert itr.guild
+        embed_exists = await itr.client.db.embed.find_unique(where={"id": embed_id})
+        return bool(embed_exists)
+
+    async def generate_embed_id(self, itr: ExultInteraction) -> str:
+        assert itr.guild
+        embed_id = str(uuid4())
+        while await self.is_id_valid(itr, embed_id):
+            embed_id = str(uuid4())
+        return embed_id
+
+    async def generate_embeds(
+        self, itr: ExultInteraction, embeds: List[Embed], message_name: str
+    ) -> None:
+        assert itr.guild
+
+        await itr.client.db.embedauthor.create_many(
+            [
+                {
+                    "guild_id": itr.guild.id,
+                    "message_name": message_name,
+                    "author_name": ea.name,
+                    "author_icon": ea.icon_url,
+                    "author_url": ea.url,
+                }
+                for ea in [e.author for e in embeds]
+                if ea.name
+            ]
+        )
+        await itr.client.db.embedfooter.create_many(
+            [
+                {
+                    "guild_id": itr.guild.id,
+                    "message_name": message_name,
+                    "footer_text": ef.text,
+                    "footer_icon": ef.icon_url,
+                }
+                for ef in [e.footer for e in embeds]
+                if ef.text
+            ]
+        )
+        for e in embeds:
+            new_embed = await itr.client.db.embed.create(
+                {
+                    "guild_id": itr.guild.id,
+                    "name": message_name,
+                    "title": e.title,
+                    "description": e.description,
+                    "colour": e.colour.value if e.colour else None,
+                    "timestamp": e.timestamp,
+                    "thumbnail": e.thumbnail.url,
+                    "image": e.image.url,
+                    "url": e.url,
+                }
+            )
+            await itr.client.db.embedfield.create_many(
+                [
+                    {
+                        "field_index": pos,
+                        "embed_id": new_embed.id,
+                        "field_name": f.name,
+                        "field_value": f.value,
+                        "field_inline": f.inline,
+                    }
+                    for pos, f in enumerate(e.fields)
+                    if f.name and f.value
+                ]
+            )
+
+    async def on_submit(self, itr: ExultInteraction) -> None:
+        try:
+            assert itr.guild
+            await itr.response.defer(ephemeral=True)
+
+            name = self.children[0].value
+            if not await self.is_name_valid(itr, name):
+                if self.data["edit"] == None:
+                    await self.generate_embeds(itr, self.data["embeds"], name)
+                    await itr.client.db.message.create(
+                        {
+                            "guild_id": itr.guild.id,
+                            "user_id": itr.user.id,
+                            "name": name,
+                            "content": self.data["content"] or "",
+                        }
+                    )
+                    msg = "Message has been created!"
+                else:
+                    msg = "Message has been updated!"
+                messages = await itr.client.db.message.find_many(
+                    where={"guild_id": itr.guild.id}
+                )
+                view = (
+                    SendMessageView(self.ctx, self.data, messages=messages)
+                    if self.send_after
+                    else MessageManager(self.ctx, messages=messages)
+                )
+                await itr.edit_original_response(view=view)
+                self.view.edited = True
+                await itr.followup.send(msg, ephemeral=True)
+            else:
+                await itr.followup.send("Message name already exists.", ephemeral=True)
+        except:
+            traceback.print_exc()
+            await itr.followup.send("smth went wrong", ephemeral=True)
+
+
 class MessageBuilderView(ui.View):
     def __init__(
-        self, ctx: ExultInteraction, data: Optional[MessageBuilderData] = None
+        self,
+        ctx: ExultInteraction,
+        data: Optional[MessageBuilderData] = None,
+        *,
+        messages: List[Message],
     ) -> None:
         try:
             super().__init__(ctx, personal=True)
@@ -1126,10 +1775,23 @@ class MessageBuilderView(ui.View):
             }
 
             ready = any((bool(data["content"]), len(data["embeds"])))
+            embed_factory = (
+                (
+                    lambda: ViewFactory.create_embed_manager_view(
+                        ctx, data, messages=messages
+                    )
+                )
+                if len(data["embeds"])
+                else lambda: ViewFactory.create_embed_builder_view(
+                    ctx, data, messages=messages
+                )
+            )
 
             self.add_item(
                 ui.ModalButton(
-                    lambda: ViewFactory.create_content_modal(ctx, data, self),
+                    lambda: ViewFactory.create_content_modal(
+                        ctx, data, self, messages=messages
+                    ),
                     style=ui.COMPLETED_STYLE[bool(data["content"])],
                     label="Message Content",
                     emoji="📃",
@@ -1141,9 +1803,7 @@ class MessageBuilderView(ui.View):
                     label="Embeds",
                     disabled=len(data["embeds"]) >= 10,
                     emoji="📰",
-                    view_factory=lambda: ViewFactory.create_embed_builder_view(
-                        ctx, data
-                    ),
+                    view_factory=embed_factory,
                 )
             )
             self.add_item(
@@ -1154,8 +1814,28 @@ class MessageBuilderView(ui.View):
                     emoji="📎",
                 )
             )
-            self.add_item(PlaceholderButton(label="Save and Exit", emoji="💨", row=1))
-            self.add_item(PlaceholderButton(label="Save and Send", emoji="💌", row=1))
+            self.add_item(
+                ui.ModalButton(
+                    lambda: ViewFactory.create_message_name_modal(
+                        ctx, data, self, send_after=False
+                    ),
+                    style=discord.ButtonStyle.gray,
+                    label="Save and Exit",
+                    emoji="💨",
+                    row=1,
+                )
+            )
+            self.add_item(
+                ui.ModalButton(
+                    lambda: ViewFactory.create_message_name_modal(
+                        ctx, data, self, send_after=True
+                    ),
+                    style=discord.ButtonStyle.gray,
+                    label="Save and Send",
+                    emoji="💌",
+                    row=1,
+                )
+            )
             self.add_item(
                 ui.GoToButton(
                     style=ui.COMPLETED_STYLE[ready],
@@ -1164,7 +1844,9 @@ class MessageBuilderView(ui.View):
                     emoji="📨",
                     edit_type="message",
                     row=1,
-                    view_factory=lambda: ViewFactory.create_send_view(ctx, data),
+                    view_factory=lambda: ViewFactory.create_send_view(
+                        ctx, data, messages=messages
+                    ),
                 )
             )
             self.add_item(
@@ -1174,7 +1856,7 @@ class MessageBuilderView(ui.View):
                     row=2,
                     edit_type="message",
                     embed=MessageManagerEmbed,
-                    view=MessageManager(ctx),
+                    view=MessageManager(ctx, messages=messages),
                 )
             )
             self.add_item(CANCEL_BUTTON_2)
@@ -1183,28 +1865,69 @@ class MessageBuilderView(ui.View):
 
 
 class MessageSelector(ui.Select[ui.V]):
-    def __init__(self) -> None:
+    def __init__(
+        self, ctx: ExultInteraction, *, messages: List[Message], delete: bool = False
+    ) -> None:
+        self.ctx = ctx
+        self.delete = delete
         super().__init__(
             placeholder="Select a message!",
             options=[
-                discord.SelectOption(
-                    label="Example",
-                    value="example",
-                    description="This does nothing",
-                    emoji="💀",
-                )
+                discord.SelectOption(label=m.name, value=m.name) for m in messages
             ],
         )
 
     async def callback(self, itr: ExultInteraction) -> None:
-        await itr.response.send_message("Example", ephemeral=True)
+        assert itr.guild
+        await itr.response.defer(ephemeral=True)
+
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        if self.delete:
+            total = 0
+            for name in self.values:
+                await itr.client.db.message.delete(
+                    where={"guild_id_name": {"guild_id": itr.guild.id, "name": name}}
+                )
+                total += 1
+            description = f"Successfully deleted {total}/{len(self.values)} messages."
+            embed = Embed(
+                description=f"## Messages Deleted:\n{description}",
+                colour=Colours.green,
+            )
+            await itr.followup.send(embed=embed, ephemeral=True)
+            view = MessageManager(self.ctx, messages=messages)
+        else:
+            name = self.values[0]
+            message = await itr.client.db.message.find_unique(
+                where={"guild_id_name": {"guild_id": itr.guild.id, "name": name}},
+                include={"embeds": True},
+            )
+            assert message
+            data: MessageBuilderData = {
+                "content": message.content,
+                "embeds": [Embed.from_db(e) for e in message.embeds]
+                if message.embeds
+                else [],
+                "guild_id": itr.guild.id,
+                "edit": message.name,
+            }
+            view = MessageBuilderView(self.ctx, data, messages=messages)
+        await itr.edit_original_response(view=view)
 
 
 class MessageSelectorView(ui.View):
-    def __init__(self, ctx: ExultInteraction) -> None:
+    def __init__(
+        self,
+        ctx: ExultInteraction,
+        *,
+        messages: List[Message],
+        delete: bool = False,
+    ) -> None:
         super().__init__(ctx, personal=True)
 
-        self.add_item(MessageSelector())
+        self.add_item(MessageSelector(ctx, messages=messages, delete=delete))
         self.add_item(
             ui.GoToButton(
                 style=discord.ButtonStyle.red,
@@ -1212,14 +1935,14 @@ class MessageSelectorView(ui.View):
                 row=2,
                 edit_type="message",
                 embed=MessageManagerEmbed,
-                view=MessageManager(ctx),
+                view=MessageManager(ctx, messages=messages),
             )
         )
         self.add_item(CANCEL_BUTTON)
 
 
 class MessageManager(ui.View):
-    def __init__(self, ctx: ExultInteraction) -> None:
+    def __init__(self, ctx: ExultInteraction, *, messages: List[Message]) -> None:
         super().__init__(ctx, personal=True)
 
         buttons: List[Dict[str, Any]] = [
@@ -1229,28 +1952,38 @@ class MessageManager(ui.View):
                 "disabled": CURRENT_MESSAGES >= 10,
                 "emoji": "➕",
                 "embed": MessageBuilderEmbed,
-                "view_factory": lambda: ViewFactory.create_builder_view(ctx),
+                "view_factory": lambda: ViewFactory.create_builder_view(
+                    ctx, messages=messages
+                ),
             },
             {
                 "style": discord.ButtonStyle.blurple,
                 "label": "Edit Message",
                 "disabled": CURRENT_MESSAGES <= 0,
                 "emoji": "🛠️",
-                "view_factory": lambda: ViewFactory.create_selector_view(ctx),
+                "view_factory": lambda: ViewFactory.create_selector_view(
+                    ctx,
+                    messages=messages,
+                    delete=False,
+                ),
             },
             {
                 "style": discord.ButtonStyle.red,
                 "label": "Delete Message",
                 "disabled": CURRENT_MESSAGES <= 0,
                 "emoji": "🗑️",
-                "view_factory": lambda: ViewFactory.create_selector_view(ctx),
+                "view_factory": lambda: ViewFactory.create_selector_view(
+                    ctx, messages=messages, delete=True
+                ),
             },
             {
                 "style": discord.ButtonStyle.gray,
                 "label": "View Message",
                 "disabled": CURRENT_MESSAGES <= 0,
                 "emoji": "👁️",
-                "view_factory": lambda: ViewFactory.create_selector_view(ctx),
+                "view_factory": lambda: ViewFactory.create_selector_view(
+                    ctx, messages=messages
+                ),
             },
         ]
 

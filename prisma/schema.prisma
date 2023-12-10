@@ -116,37 +116,45 @@ model Message {
 }
 
 model EmbedAuthor {
-    embed_id String @id
+    guild_id     BigInt
+    message_name String
 
-    name String
-    icon String?
-    url  String?
+    author_name String
+    author_icon String?
+    author_url  String?
 
-    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+    embed Embed @relation(references: [guild_id, name], fields: [guild_id, message_name], onDelete: Cascade)
 
-    @@index([embed_id])
+    @@id([guild_id, message_name])
+    @@index([guild_id])
+    @@index([guild_id, message_name])
 }
 
 model EmbedFooter {
-    embed_id String @id
+    guild_id     BigInt
+    message_name String
 
-    icon String?
-    text String
+    footer_text String
+    footer_icon String?
 
-    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+    embed Embed @relation(references: [guild_id, name], fields: [guild_id, message_name], onDelete: Cascade)
 
-    @@index([embed_id])
+    @@id([guild_id, message_name])
+    @@index([guild_id])
+    @@index([guild_id, message_name])
 }
 
 model EmbedField {
-    embed_id String @id
+    field_index Int
+    embed_id    String
 
-    name   String
-    value  String
-    inline Boolean @default(true)
+    field_name   String
+    field_value  String
+    field_inline Boolean @default(true)
 
-    embed Embed @relation(fields: [embed_id], references: [id], onDelete: Cascade)
+    embed Embed @relation(references: [id], fields: [embed_id], onDelete: Cascade)
 
+    @@id([field_index, embed_id])
     @@index([embed_id])
 }
 
@@ -159,12 +167,12 @@ model Embed {
     description String?
     colour      Int?
     timestamp   DateTime?
-    author      EmbedAuthor?
-    footer      EmbedFooter?
     thumbnail   String?
     image       String?
-    fields      EmbedField[]
     url         String?
+    fields      EmbedField[]
+    author      EmbedAuthor?
+    footer      EmbedFooter?
 
     message Message @relation(references: [guild_id, name], fields: [guild_id, name], onDelete: Cascade)
 

@@ -31,5 +31,9 @@ class MessageBuilder(Cog):
         name="manager", description="Create, edit and delete custom reusable messages!"
     )
     async def message_manager(self, itr: ExultInteraction) -> None:
-        view = MessageManager(itr)
+        assert itr.guild
+        messages = await itr.client.db.message.find_many(
+            where={"guild_id": itr.guild.id}
+        )
+        view = MessageManager(itr, messages=messages)
         await itr.response.send_message(embed=MessageManagerEmbed, view=view)

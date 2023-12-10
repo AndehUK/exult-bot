@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # Core Imports
+import traceback
 from uuid import uuid4
 from typing import (
     Any,
@@ -238,4 +239,7 @@ class ModalButton(ui.Button[V], Generic[V]):
     view: V
 
     async def callback(self, itr: discord.Interaction[ExultBot]) -> None:
-        return await itr.response.send_modal(self.modal())
+        try:
+            return await itr.response.send_modal(self.modal())
+        except:
+            traceback.print_exc()
