@@ -37,24 +37,17 @@ class AutorolesCog(Cog):
     )
 
     async def get_config(self, guild: discord.Guild) -> Guild:
-        config = await self.bot.db.guild.find_unique(
+        func = self.bot.db.guild.find_unique(
             {"guild_id": guild.id},
             {"autorole_config": {"include": {"autoroles": True}}},
         )
+        config = await func
+        tries = 0
+        while not config and tries > 3:
+            self.bot.dispatch("guild_join", guild)
+            config = await func
         if not config:
-            config = await self.bot.db.guild.create({"guild_id": guild.id})
-            await self.bot.db.user.create_many(
-                [{"user_id": m.id} for m in guild.members if not m.bot],
-                skip_duplicates=True,
-            )
-            await self.bot.db.member.create_many(
-                [
-                    {"guild_id": guild.id, "member_id": m.id}
-                    for m in guild.members
-                    if not m.bot
-                ],
-                skip_duplicates=True,
-            )
+            raise Exception(f"Failed to get and/or create config for guild {guild.id}!")
         return config
 
     async def assign_autoroles(self, config: Guild, member: discord.Member) -> None:
