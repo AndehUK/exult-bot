@@ -187,6 +187,7 @@ class Embed(discord.Embed):
                 raise ValueError("Invalid value given for key: `color`")
         else:
             colour = Colours.embed_default
+        print("Colour success")
 
         if "timestamp" in data:
             try:
@@ -197,26 +198,39 @@ class Embed(discord.Embed):
                 )
         else:
             timestamp = None
+        print("timestamp success")
 
         if "thumbnail" in data:
-            is_url = bot.regex.url_regex.search(data["thumbnail"])
+            thumb_url = (
+                data["thumbnail"]
+                if isinstance(data["thumbnail"], str)
+                else data["thumbnail"]["url"]
+            )
+            is_url = bot.regex.url_regex.search(thumb_url)
             if not is_url:
                 raise ValueError("Embed thumbnail must be a direct image url.")
-            if not await is_image_valid(bot, data["thumbnail"]):
+            if not await is_image_valid(bot, thumb_url):
                 raise ValueError("Embed thumbnail must be a direct image url.")
-            thumbnail = data["thumbnail"]
+            thumbnail = thumb_url
         else:
             thumbnail = None
+        print("thumbnail success")
 
         if "image" in data:
-            is_url = bot.regex.url_regex.search(data["image"])
+            image_url = (
+                data["image"]
+                if isinstance(data["image"], str)
+                else data["image"]["url"]
+            )
+            is_url = bot.regex.url_regex.search(image_url)
             if not is_url:
                 raise ValueError("Embed image must be a direct image url.")
-            if not await is_image_valid(bot, data["image"]):
+            if not await is_image_valid(bot, image_url):
                 raise ValueError("Embed image must be a direct image url.")
-            image = data["image"]
+            image = image_url
         else:
             image = None
+        print("image success")
 
         author: Dict[str, str] = {}
         if "author" in data:
@@ -243,6 +257,7 @@ class Embed(discord.Embed):
                 if not is_url:
                     raise ValueError("Embed Author url must be a valid url.")
                 author["url"] = data["author"]["url"]
+        print("author success")
 
         footer: Dict[str, str] = {}
         if "footer" in data:
@@ -264,32 +279,34 @@ class Embed(discord.Embed):
                         "Embed Footer icon url must be a direct image url."
                     )
                 footer["icon_url"] = data["footer"]["icon_url"]
+        print("footer success")
 
         self.type = "rich"
         self.title = data.get("title", None)
         self.description = data.get("description", None)
         self.url = data.get("url", None)
+        print("main props success")
 
         if colour:
             self._colour = colour
         if timestamp:
             self._timestamp = timestamp
         if thumbnail:
-            self._thumbnail = thumbnail
+            self.set_thumbnail(url=thumbnail)
         if image:
-            self._image = image
+            self.set_image(url=image)
+        print("other props success")
 
         if author:
-            self._author = {
-                "name": author["name"],
-                "url": author.get("url", None),
-                "icon_url": author.get("icon_url", None),
-            }
+            self.set_author(
+                name=author["name"],
+                url=author.get("url", None),
+                icon_url=author.get("icon_url", None),
+            )
+        print("set author success")
         if footer:
-            self._footer = {
-                "text": footer["text"],
-                "icon_url": footer.get("icon_url", None),
-            }
+            self.set_footer(text=footer["text"], icon_url=footer.get("icon_url", None))
+        print("set footer success")
 
         if "fields" in data:
             required: Tuple[str, ...] = ("name", "value")
@@ -314,5 +331,6 @@ class Embed(discord.Embed):
                 if not isinstance(inline, bool):
                     raise TypeError(f"Field {pos} inline must be a boolean type.")
                 self.add_field(name=name, value=value, inline=inline)
+        print("fields success")
 
         return self
