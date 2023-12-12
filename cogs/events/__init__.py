@@ -12,6 +12,7 @@ from helpers.colour import Colours
 from helpers.embed import Embed
 
 if TYPE_CHECKING:
+    from bot import ExultBot
     from helpers.types import ExultInteraction
 
 
@@ -79,3 +80,7 @@ class BotEvents(Cog):
             return
 
         await channel.send(embed=embed)
+
+
+async def setup(bot: ExultBot) -> None:
+    await bot.add_cog(BotEvents(bot))
